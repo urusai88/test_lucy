@@ -131,6 +131,42 @@ class _GoodsLayoutState extends State<_GoodsLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final videoItem = widget.bloc.getVideoItem(widget.goods.id);
+
+    Widget player = StreamBuilder<VideoPlayerController>(
+      stream: videoItem.controller,
+      builder: (_, snapshot) {
+        if (!snapshot.hasData)
+          return Center(child: CircularProgressIndicator());
+
+        final controller = snapshot.data;
+
+        Widget player = VideoPlayer(controller);
+
+        player = FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: controller.value.size.width,
+            height: controller.value.size.height,
+            child: player,
+          ),
+        );
+
+        player = GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () async {
+            if (!controller.value.initialized) return;
+
+            controller.value.isPlaying ? controller.pause() : controller.play();
+          },
+          child: player,
+        );
+
+        return player;
+      },
+    );
+
+    /*
     final controller = widget.bloc.ensureController(widget.goods.id);
 
     Widget player = ValueListenableBuilder<VideoPlayerValue>(
@@ -164,6 +200,7 @@ class _GoodsLayoutState extends State<_GoodsLayout> {
         return player;
       },
     );
+    */
 
     return Stack(
       fit: StackFit.passthrough,
@@ -212,7 +249,7 @@ class _MainScreenState extends State<MainScreen> {
             .round();
 
     if (_page != p) {
-      bloc.onPageChanged(_page = p);
+      bloc.changeVideo(_page = p);
     }
   }
 
@@ -227,7 +264,12 @@ class _MainScreenState extends State<MainScreen> {
       repository: Provider.of<Repository>(context, listen: false),
     );
 
-    Future(bloc.load);
+    Future(_asyncInitState);
+  }
+
+  Future<void> _asyncInitState() async {
+    await bloc.load();
+    await bloc.changeVideo(0);
   }
 
   @override
