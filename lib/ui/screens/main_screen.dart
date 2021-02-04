@@ -205,12 +205,17 @@ class _MainScreenState extends State<MainScreen> {
   int _page = 0;
 
   void _scrollControllerListener() {
-    final j =
-        (scrollController.offset / scrollController.position.viewportDimension);
-    final p = j.floor();
+    final r =
+        (scrollController.offset % scrollController.position.viewportDimension);
 
-    if (_page != p) {
-      bloc.changeVideo(bloc.goodsSink.value[_page = p].id);
+    if (r == 0.0) {
+      final j = (scrollController.offset /
+          scrollController.position.viewportDimension);
+      final p = j.floor();
+
+      if (_page != p) {
+        bloc.changeVideo(bloc.goodsSink.value[_page = p].id);
+      }
     }
   }
 

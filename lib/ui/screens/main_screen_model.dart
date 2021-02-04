@@ -34,6 +34,8 @@ class MainScreenModel {
 
   final videoItemList = <int, VideoItem>{};
 
+  int _videoId;
+
   MainScreenModel({@required this.repository}) : videoFeed = VideoFeed();
 
   Future<void> play({int index}) async {}
@@ -61,6 +63,22 @@ class MainScreenModel {
 
     final max = math.min(idx + 2, goodsSink.value.length);
     final min = math.max(idx - 2, 0);
+
+    if (_videoId != null) {
+      getVideoItem(_videoId).controllerStream.value.pause();
+    }
+
+    _videoId = id;
+
+    getVideoItem(_videoId)
+        .controllerStream
+        .firstWhere((e) => e != null)
+        .then((v) async {
+      if (_videoId == id) {
+        await v.seekTo(Duration.zero);
+        await v.play();
+      }
+    });
 
     for (var i = min; i <= max; ++i) {
       final videoItem = getVideoItem(goodsSink.value[i].id);
@@ -94,6 +112,7 @@ class MainScreenModel {
 
     try {
       await controller.initialize();
+      await controller.setLooping(true);
       videoItem.controllerStream.add(controller);
       print('$filepath controller initialized in ${sw.elapsedMilliseconds}');
     } catch (e) {
