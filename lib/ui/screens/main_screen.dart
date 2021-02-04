@@ -151,19 +151,6 @@ class _GoodsLayoutState extends State<_GoodsLayout> {
           ),
         );
 
-        /*
-        if (value.size != null) {
-          player = FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: value.size.width,
-              height: value.size.height,
-              child: player,
-            ),
-          );
-        }
-        */
-
         return player;
       },
     );
