@@ -27,8 +27,9 @@ class MainScreenModel {
     if (!controllerList.containsKey(id)) {
       print('ensure $id');
       final goods = goodsSink.value.firstWhere((e) => e.id == id);
-      final controller = VideoPlayerController.network(goods.regularVideo)
-        ..initialize();
+      final controller = VideoPlayerController.network(goods.regularVideo);
+
+      controller.initialize().then((_) => controller.setLooping(true));
 
       controllerList[id] = controller;
 
