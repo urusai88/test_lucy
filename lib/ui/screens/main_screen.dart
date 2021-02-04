@@ -178,19 +178,19 @@ class _GoodsLayoutState extends State<_GoodsLayout> {
   }
 }
 
-class _ScrollPhysics extends ScrollPhysics {
-  final Tolerance _tolerance;
+class _ScrollPhysics extends PageScrollPhysics {
   final SpringDescription _spring;
 
-  _ScrollPhysics({Tolerance tolerance, SpringDescription spring})
-      : _tolerance = tolerance,
-        _spring = spring;
+  _ScrollPhysics({ScrollPhysics parent, SpringDescription spring})
+      : _spring = spring,
+        super(parent: parent);
+
+  @override
+  _ScrollPhysics applyTo(ScrollPhysics ancestor) =>
+      _ScrollPhysics(parent: buildParent(ancestor), spring: _spring);
 
   @override
   SpringDescription get spring => _spring;
-
-  @override
-  Tolerance get tolerance => _tolerance;
 }
 
 class MainScreen extends StatefulWidget {
@@ -248,13 +248,11 @@ class _MainScreenState extends State<MainScreen> {
           builder: (_, snapshot) {
             return ListView.builder(
               controller: scrollController,
-              physics: PageScrollPhysics(
-                parent: _ScrollPhysics(
-                  spring: SpringDescription(
-                    mass: 1.0,
-                    stiffness: 1.0,
-                    damping: 5.0,
-                  ),
+              physics: _ScrollPhysics(
+                spring: SpringDescription(
+                  mass: 80,
+                  stiffness: 10,
+                  damping: 1,
                 ),
               ),
               cacheExtent: constraints.maxHeight,
