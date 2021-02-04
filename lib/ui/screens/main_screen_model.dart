@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test_lucy/core/video_feed.dart';
@@ -12,16 +13,19 @@ import '../../export.dart';
 
 class VideoItem {
   final String src;
-  final controller = BehaviorSubject<VideoPlayerController>();
+  final controllerStream = BehaviorSubject<VideoPlayerController>();
+  final loadingStream = BehaviorSubject<bool>.seeded(false);
 
   VideoItem({@required this.src});
 
   void dispose() {
-    controller.close();
+    controllerStream.close();
+    loadingStream.close();
   }
 }
 
 class MainScreenModel {
+  final http.Client _client = http.Client();
   final Repository repository;
   final VideoFeed videoFeed;
 
@@ -30,21 +34,15 @@ class MainScreenModel {
 
   final videoItemList = <int, VideoItem>{};
 
-  final controllerList = <int, VideoPlayerController>{};
-
-  VideoPlayerController _activeController;
-
   MainScreenModel({@required this.repository}) : videoFeed = VideoFeed();
 
   Future<void> play({int index}) async {}
 
   Future<void> load() async {
     final goods = await repository.loadGoods();
-    // final sourceList = goods.map((e) => e.regularVideo).toList();
 
     goodsSink.add(goods);
     loadSink.add(true);
-    // videoFeed.sourceList.addAll(sourceList);
   }
 
   VideoItem getVideoItem(int id) {
@@ -52,27 +50,42 @@ class MainScreenModel {
       final item = goodsSink.value.firstWhere((e) => e.id == id);
       final videoItem = VideoItem(src: item.regularVideo);
 
-      _loadVideo(videoItem);
-
       videoItemList[id] = videoItem;
     }
 
     return videoItemList[id];
   }
 
-  Future<void> changeVideo(int index) async {}
+  Future<void> changeVideo(int id) async {
+    final idx = goodsSink.value.indexWhere((e) => e.id == id);
+
+    final max = math.min(idx + 2, goodsSink.value.length);
+    final min = math.max(idx - 2, 0);
+
+    for (var i = min; i <= max; ++i) {
+      final videoItem = getVideoItem(goodsSink.value[i].id);
+
+      if (videoItem.controllerStream.value != null) continue;
+      if (videoItem.loadingStream.value == true) continue;
+
+      _loadVideo(videoItem);
+    }
+  }
 
   Future<void> _loadVideo(VideoItem videoItem) async {
+    videoItem.loadingStream.add(true);
+
     final directory = await pathProvider.getTemporaryDirectory();
     final filename = path.basename(videoItem.src);
     final filepath = path.join(directory.path, filename);
     final file = File(filepath);
+    final sw = Stopwatch()..start();
 
     if (!await file.exists()) {
       print('$filepath download');
-      final resp = await http.readBytes(videoItem.src);
+      final resp = await _client.readBytes(videoItem.src);
       await file.writeAsBytes(resp.toList());
-      print('$filepath download complete');
+      print('$filepath download completed ${sw.elapsedMilliseconds}');
     } else {
       print('$filepath exists');
     }
@@ -81,10 +94,12 @@ class MainScreenModel {
 
     try {
       await controller.initialize();
-      videoItem.controller.add(controller);
-      print('$filepath controller initialized');
+      videoItem.controllerStream.add(controller);
+      print('$filepath controller initialized in ${sw.elapsedMilliseconds}');
     } catch (e) {
       print('controller $filepath initialize error:\n$e');
+    } finally {
+      videoItem.loadingStream.add(false);
     }
   }
 
@@ -93,60 +108,10 @@ class MainScreenModel {
       print('dispose $id');
       final videoItem = videoItemList[id];
 
-      videoItem.controller.value?.dispose();
-      videoItem.controller.add(null);
+      videoItem.controllerStream.value?.dispose();
+      videoItem.controllerStream.add(null);
     }
   }
-
-/*
-  VideoItem getVideoItem(int id) {
-
-  }
-
-  VideoPlayerController ensureController(int id) {
-    if (!controllerList.containsKey(id)) {
-      print('ensure $id');
-      final goods = goodsSink.value.firstWhere((e) => e.id == id);
-      final controller = VideoPlayerController.network(goods.regularVideo);
-
-      controller.initialize().then((_) => controller.setLooping(true));
-
-      controllerList[id] = controller;
-
-      if (_activeController == null) {
-        _activeController = controller;
-        _activeController.play();
-      }
-    }
-
-    return controllerList[id];
-  }
-
-  void disposeController(int id) {
-    if (controllerList.containsKey(id)) {
-      print('dispose $id');
-      controllerList[id].dispose();
-      controllerList.remove(id);
-    }
-  }
-
-  Future<void> onPageChanged(int p) async {
-    videoFeed.s(p);
-    final goods = goodsSink.value[p];
-    final controller = ensureController(goods.id);
-
-    if (_activeController != null) {
-      await _activeController.pause();
-      if (_activeController.value.duration != null) {
-        await _activeController.seekTo(Duration.zero);
-      }
-    }
-
-    await controller.play();
-
-    _activeController = controller;
-  }
-  */
 
   void dispose() {
     goodsSink.close();

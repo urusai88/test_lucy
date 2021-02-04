@@ -134,7 +134,7 @@ class _GoodsLayoutState extends State<_GoodsLayout> {
     final videoItem = widget.bloc.getVideoItem(widget.goods.id);
 
     Widget player = StreamBuilder<VideoPlayerController>(
-      stream: videoItem.controller,
+      stream: videoItem.controllerStream,
       builder: (_, snapshot) {
         if (!snapshot.hasData)
           return Center(child: CircularProgressIndicator());
@@ -165,42 +165,6 @@ class _GoodsLayoutState extends State<_GoodsLayout> {
         return player;
       },
     );
-
-    /*
-    final controller = widget.bloc.ensureController(widget.goods.id);
-
-    Widget player = ValueListenableBuilder<VideoPlayerValue>(
-      valueListenable: controller,
-      builder: (_, value, __) {
-        if (!value.initialized || value.size == null) {
-          return Center(child: CircularProgressIndicator());
-        }
-
-        Widget player = VideoPlayer(controller);
-
-        player = FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: value.size.width,
-            height: value.size.height,
-            child: player,
-          ),
-        );
-
-        player = GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () async {
-            if (!value.initialized) return;
-
-            value.isPlaying ? controller.pause() : controller.play();
-          },
-          child: player,
-        );
-
-        return player;
-      },
-    );
-    */
 
     return Stack(
       fit: StackFit.passthrough,
@@ -241,15 +205,12 @@ class _MainScreenState extends State<MainScreen> {
   int _page = 0;
 
   void _scrollControllerListener() {
-    final p =
-        (scrollController.offset / scrollController.position.viewportDimension)
-            .floor();
-    final page =
-        (scrollController.offset / scrollController.position.viewportDimension)
-            .round();
+    final j =
+        (scrollController.offset / scrollController.position.viewportDimension);
+    final p = j.floor();
 
     if (_page != p) {
-      bloc.changeVideo(_page = p);
+      bloc.changeVideo(bloc.goodsSink.value[_page = p].id);
     }
   }
 
@@ -269,7 +230,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _asyncInitState() async {
     await bloc.load();
-    await bloc.changeVideo(0);
+    await bloc.changeVideo(bloc.goodsSink.value[_page].id);
   }
 
   @override
@@ -294,7 +255,7 @@ class _MainScreenState extends State<MainScreen> {
                   damping: 1,
                 ),
               ),
-              cacheExtent: constraints.maxHeight,
+              cacheExtent: constraints.maxHeight * 2,
               itemExtent: constraints.maxHeight,
               itemCount: snapshot.data.length,
               padding: EdgeInsets.zero,
