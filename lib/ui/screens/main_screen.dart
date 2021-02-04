@@ -207,8 +207,8 @@ class _MainScreenState extends State<MainScreen> {
   void _scrollControllerListener() {
     final r =
         (scrollController.offset % scrollController.position.viewportDimension);
-
-    if (r == 0.0) {
+    print(r);
+    if (r < 5.0) {
       final j = (scrollController.offset /
           scrollController.position.viewportDimension);
       final p = j.floor();
