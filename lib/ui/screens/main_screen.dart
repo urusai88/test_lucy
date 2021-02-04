@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
@@ -177,6 +178,21 @@ class _GoodsLayoutState extends State<_GoodsLayout> {
   }
 }
 
+class _ScrollPhysics extends ScrollPhysics {
+  final Tolerance _tolerance;
+  final SpringDescription _spring;
+
+  _ScrollPhysics({Tolerance tolerance, SpringDescription spring})
+      : _tolerance = tolerance,
+        _spring = spring;
+
+  @override
+  SpringDescription get spring => _spring;
+
+  @override
+  Tolerance get tolerance => _tolerance;
+}
+
 class MainScreen extends StatefulWidget {
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -191,12 +207,15 @@ class _MainScreenState extends State<MainScreen> {
   int _page = 0;
 
   void _scrollControllerListener() {
+    final p =
+        (scrollController.offset / scrollController.position.viewportDimension)
+            .floor();
     final page =
         (scrollController.offset / scrollController.position.viewportDimension)
             .round();
 
-    if (_page != page) {
-      bloc.onPageChanged(_page = page);
+    if (_page != p) {
+      bloc.onPageChanged(_page = p);
     }
   }
 
@@ -229,8 +248,16 @@ class _MainScreenState extends State<MainScreen> {
           builder: (_, snapshot) {
             return ListView.builder(
               controller: scrollController,
-              physics: PageScrollPhysics(),
-              cacheExtent: constraints.maxHeight * 2,
+              physics: PageScrollPhysics(
+                parent: _ScrollPhysics(
+                  spring: SpringDescription(
+                    mass: 1.0,
+                    stiffness: 1.0,
+                    damping: 5.0,
+                  ),
+                ),
+              ),
+              cacheExtent: constraints.maxHeight,
               itemExtent: constraints.maxHeight,
               itemCount: snapshot.data.length,
               padding: EdgeInsets.zero,
