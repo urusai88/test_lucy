@@ -151,6 +151,16 @@ class _GoodsLayoutState extends State<_GoodsLayout> {
           ),
         );
 
+        player = GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () async {
+            if (!value.initialized) return;
+
+            value.isPlaying ? controller.pause() : controller.play();
+          },
+          child: player,
+        );
+
         return player;
       },
     );
