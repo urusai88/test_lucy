@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_test_lucy/core/video_feed.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:video_player/video_player.dart';
 
@@ -6,6 +7,7 @@ import '../../export.dart';
 
 class MainScreenModel {
   final Repository repository;
+  final VideoFeed videoFeed;
 
   final loadSink = BehaviorSubject<bool>.seeded(false);
   final goodsSink = BehaviorSubject<List<GoodsEntity>>();
@@ -14,13 +16,15 @@ class MainScreenModel {
 
   VideoPlayerController _activeController;
 
-  MainScreenModel({@required this.repository});
+  MainScreenModel({@required this.repository}) : videoFeed = VideoFeed();
 
   Future<void> load() async {
     final goods = await repository.loadGoods();
+    final sourceList = goods.map((e) => e.regularVideo).toList();
 
     goodsSink.add(goods);
     loadSink.add(true);
+    videoFeed.sourceList.addAll(sourceList);
   }
 
   VideoPlayerController ensureController(int id) {
@@ -51,6 +55,7 @@ class MainScreenModel {
   }
 
   Future<void> onPageChanged(int p) async {
+    videoFeed.s(p);
     final goods = goodsSink.value[p];
     final controller = ensureController(goods.id);
 
